@@ -16,13 +16,11 @@ if hf_token:
 
 # Load both models at startup for caching between warm invocations
 model = OrpheusModel(
-    model_name="canopylabs/orpheus-tts-0.1-finetune-prod",
-    max_model_len=8192
+    model_name="canopylabs/orpheus-tts-0.1-finetune-prod"
 )
 
 clone_model = OrpheusModel(
-    model_name="canopylabs/orpheus-3b-0.1-pretrain",
-    max_model_len=8192
+    model_name="canopylabs/orpheus-3b-0.1-pretrain"
 )
 
 def handler(event):

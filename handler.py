@@ -149,9 +149,18 @@ def handler(event):
         # Collect all yielded audio chunks
         chunk_audio = list(audio_chunks_generator)
         
+        # Flatten any zero-dimensional arrays and filter empty ones
+        flat_chunks = []
+        for ca in chunk_audio:
+            arr = np.asarray(ca)
+            if arr.ndim == 0:
+                arr = arr.reshape(1)
+            if arr.size > 0:
+                flat_chunks.append(arr)
+        
         # Concatenate the chunks for this text segment
-        if chunk_audio:
-            chunk_audio_array = np.concatenate(chunk_audio)
+        if flat_chunks:
+            chunk_audio_array = np.concatenate(flat_chunks)
             all_audio_chunks.append(chunk_audio_array)
         
         chunks_generated += 1

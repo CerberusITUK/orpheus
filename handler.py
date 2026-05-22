@@ -3,10 +3,9 @@ import runpod
 import torch
 import base64
 import io
-import wave
-import numpy as np
 import uuid
 import os
+from pydub import AudioSegment
 from huggingface_hub import login
 from orpheus_tts import OrpheusModel
 
@@ -60,7 +59,7 @@ def handler(event):
     - repetition_penalty (float, optional, default 1.1)
     
     Returns:
-    - audio_base64 (string) — base64-encoded WAV audio (mono, 16-bit, 24000Hz)
+    - audio_base64 (string) — base64-encoded MP3 audio
     - duration_seconds (float)
     - chunks_generated (int)
     """
@@ -161,13 +160,24 @@ def handler(event):
     if ref_path and os.path.exists(ref_path):
         os.remove(ref_path)
     
-    # Encode to base64
-    audio_base64 = base64.b64encode(all_audio_bytes).decode('utf-8')
-    
-    # Estimate duration (approx 24kHz, 16-bit mono)
+    # Convert raw PCM bytes to MP3
     sample_rate = 24000
-    bytes_per_sample = 2
-    duration_seconds = len(all_audio_bytes) / (sample_rate * bytes_per_sample)
+    audio_segment = AudioSegment(
+        data=bytes(all_audio_bytes),
+        sample_width=2,  # 16-bit
+        frame_rate=sample_rate,
+        channels=1
+    )
+    
+    mp3_buffer = io.BytesIO()
+    audio_segment.export(mp3_buffer, format="mp3", bitrate="128k")
+    mp3_bytes = mp3_buffer.getvalue()
+    
+    # Encode to base64
+    audio_base64 = base64.b64encode(mp3_bytes).decode('utf-8')
+    
+    # Duration
+    duration_seconds = len(audio_segment) / 1000.0
     
     return {
         "audio_base64": audio_base64,

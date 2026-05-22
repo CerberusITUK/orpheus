@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     wget \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3.11 /usr/bin/python
 

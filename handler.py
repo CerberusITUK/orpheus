@@ -9,7 +9,18 @@ import os
 from huggingface_hub import login
 from orpheus_tts import OrpheusModel
 
-# Build trigger: force RunPod rebuild v2
+# Patch vllm tokenizer bug with newer tokenizers library
+try:
+    from transformers.tokenization_utils_base import PreTrainedTokenizerBase
+    _orig_getattr = PreTrainedTokenizerBase.__getattr__
+    def _patched_getattr(self, key):
+        if key == 'all_special_tokens_extended':
+            return []
+        return _orig_getattr(self, key)
+    PreTrainedTokenizerBase.__getattr__ = _patched_getattr
+except Exception:
+    pass
+
 # Authenticate with HuggingFace if token is provided
 hf_token = os.environ.get("HF_TOKEN")
 if hf_token:
@@ -21,7 +32,7 @@ model = OrpheusModel(
 )
 
 clone_model = OrpheusModel(
-    model_name="canopylabs/orpheus-3b-0.1-pretrain"
+    model_name="canopylabs/orpheus-3b-0.1-pretrained"
 )
 
 def handler(event):

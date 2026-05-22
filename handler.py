@@ -64,6 +64,15 @@ def handler(event):
     - duration_seconds (float)
     - chunks_generated (int)
     """
+    # DEBUG: Inspect what generate_speech yields
+    gen = get_model().generate_speech(prompt="test", voice="dan", temperature=0.7, repetition_penalty=1.1)
+    samples = []
+    for i, item in enumerate(gen):
+        samples.append({"index": i, "type": type(item).__name__, "repr": repr(item)[:200]})
+        if i >= 5:
+            break
+    return {"debug_samples": samples}
+    
     input_data = event["input"]
     
     # Extract parameters with defaults

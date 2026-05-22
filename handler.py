@@ -26,14 +26,25 @@ hf_token = os.environ.get("HF_TOKEN")
 if hf_token:
     login(token=hf_token)
 
-# Load both models at startup for caching between warm invocations
-model = OrpheusModel(
-    model_name="canopylabs/orpheus-tts-0.1-finetune-prod"
-)
+# Lazy-load models on first use to reduce VRAM footprint
+_model = None
+_clone_model = None
 
-clone_model = OrpheusModel(
-    model_name="canopylabs/orpheus-3b-0.1-pretrained"
-)
+def get_model():
+    global _model
+    if _model is None:
+        _model = OrpheusModel(
+            model_name="canopylabs/orpheus-tts-0.1-finetune-prod"
+        )
+    return _model
+
+def get_clone_model():
+    global _clone_model
+    if _clone_model is None:
+        _clone_model = OrpheusModel(
+            model_name="canopylabs/orpheus-3b-0.1-pretrained"
+        )
+    return _clone_model
 
 def handler(event):
     """
@@ -119,14 +130,14 @@ def handler(event):
     for chunk in chunks:
         if ref_path:
             # Use pretrained model with voice cloning
-            audio_chunks_generator = clone_model.generate_with_voice_clone(
+            audio_chunks_generator = get_clone_model().generate_with_voice_clone(
                 chunk,
                 ref_path
             )
         else:
             # Use finetuned model with preset voice
             # generate() returns a generator of audio chunks
-            audio_chunks_generator = model.generate(
+            audio_chunks_generator = get_model().generate(
                 chunk,
                 voice=voice,
                 temperature=temperature,

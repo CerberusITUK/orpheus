@@ -64,15 +64,6 @@ def handler(event):
     - duration_seconds (float)
     - chunks_generated (int)
     """
-    # DEBUG: Inspect what generate_speech yields
-    gen = get_model().generate_speech(prompt="test", voice="dan", temperature=0.7, repetition_penalty=1.1)
-    samples = []
-    for i, item in enumerate(gen):
-        samples.append({"index": i, "type": type(item).__name__, "repr": repr(item)[:200]})
-        if i >= 5:
-            break
-    return {"debug_samples": samples}
-    
     input_data = event["input"]
     
     # Extract parameters with defaults
@@ -87,7 +78,7 @@ def handler(event):
     repetition_penalty = float(input_data.get("repetition_penalty", 1.1))
     
     chunks_generated = 0
-    all_audio_chunks = []
+    all_audio_bytes = bytearray()
     ref_path = None
     
     # Handle reference audio for voice cloning
@@ -148,7 +139,6 @@ def handler(event):
             )
         else:
             # Use finetuned model with preset voice
-            # generate_speech() returns a generator of audio chunks
             audio_chunks_generator = get_model().generate_speech(
                 prompt=chunk,
                 voice=voice,
@@ -156,22 +146,14 @@ def handler(event):
                 repetition_penalty=repetition_penalty
             )
         
-        # Collect all yielded audio chunks
-        chunk_audio = list(audio_chunks_generator)
-        
-        # Flatten any zero-dimensional arrays and filter empty ones
-        flat_chunks = []
-        for ca in chunk_audio:
-            arr = np.asarray(ca)
-            if arr.ndim == 0:
-                arr = arr.reshape(1)
-            if arr.size > 0:
-                flat_chunks.append(arr)
-        
-        # Concatenate the chunks for this text segment
-        if flat_chunks:
-            chunk_audio_array = np.concatenate(flat_chunks)
-            all_audio_chunks.append(chunk_audio_array)
+        # Collect all yielded bytes and append
+        for audio_chunk in audio_chunks_generator:
+            if isinstance(audio_chunk, bytes):
+                all_audio_bytes.extend(audio_chunk)
+            elif isinstance(audio_chunk, bytearray):
+                all_audio_bytes.extend(audio_chunk)
+            elif isinstance(audio_chunk, str):
+                all_audio_bytes.extend(audio_chunk.encode('utf-8'))
         
         chunks_generated += 1
     
@@ -179,36 +161,17 @@ def handler(event):
     if ref_path and os.path.exists(ref_path):
         os.remove(ref_path)
     
-    # Concatenate all text segment chunks
-    if len(all_audio_chunks) > 1:
-        combined_audio = np.concatenate(all_audio_chunks)
-    else:
-        combined_audio = all_audio_chunks[0]
-    
-    # Convert to WAV format (mono, 16-bit, 24000Hz)
-    sample_rate = 24000
-    audio_int16 = (combined_audio * 32767).astype(np.int16)
-    
-    # Create WAV in memory
-    wav_buffer = io.BytesIO()
-    with wave.open(wav_buffer, 'w') as wav_file:
-        wav_file.setnchannels(1)  # mono
-        wav_file.setsampwidth(2)  # 16-bit
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(audio_int16.tobytes())
-    
-    wav_buffer.seek(0)
-    wav_bytes = wav_buffer.read()
-    
-    # Calculate duration
-    duration_seconds = len(combined_audio) / sample_rate
-    
     # Encode to base64
-    audio_base64 = base64.b64encode(wav_bytes).decode('utf-8')
+    audio_base64 = base64.b64encode(all_audio_bytes).decode('utf-8')
+    
+    # Estimate duration (approx 24kHz, 16-bit mono)
+    sample_rate = 24000
+    bytes_per_sample = 2
+    duration_seconds = len(all_audio_bytes) / (sample_rate * bytes_per_sample)
     
     return {
         "audio_base64": audio_base64,
-        "duration_seconds": duration_seconds,
+        "duration_seconds": round(duration_seconds, 2),
         "chunks_generated": chunks_generated
     }
 

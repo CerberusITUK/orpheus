@@ -130,14 +130,16 @@ def handler(event):
     for chunk in chunks:
         if ref_path:
             # Use pretrained model with voice cloning
-            audio_chunks_generator = get_clone_model().generate_with_voice_clone(
+            audio_chunks_generator = get_clone_model().generate_speech(
                 chunk,
-                ref_path
+                voice=voice,
+                temperature=temperature,
+                repetition_penalty=repetition_penalty
             )
         else:
             # Use finetuned model with preset voice
-            # generate() returns a generator of audio chunks
-            audio_chunks_generator = get_model().generate(
+            # generate_speech() returns a generator of audio chunks
+            audio_chunks_generator = get_model().generate_speech(
                 chunk,
                 voice=voice,
                 temperature=temperature,

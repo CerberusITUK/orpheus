@@ -21,8 +21,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Patch vllm tokenizer for newer transformers compatibility
-RUN sed -i 's/tokenizer.all_special_tokens_extended)/getattr(tokenizer, "all_special_tokens_extended", []))/g' \
-    /usr/local/lib/python3.11/dist-packages/vllm/transformers_utils/tokenizer.py
+RUN python -c "import pathlib; fp=pathlib.Path('/usr/local/lib/python3.11/dist-packages/vllm/transformers_utils/tokenizer.py'); text=fp.read_text(); text=text.replace('tokenizer.all_special_tokens_extended)', 'getattr(tokenizer, \"all_special_tokens_extended\", []))'); fp.write_text(text); print('Patched')"
 
 # Copy handler code
 COPY handler.py .

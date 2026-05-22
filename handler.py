@@ -9,7 +9,7 @@ import os
 from huggingface_hub import login
 from orpheus_tts import OrpheusModel
 
-# Build trigger: force RunPod rebuild
+# Build trigger: force RunPod rebuild v2
 # Authenticate with HuggingFace if token is provided
 hf_token = os.environ.get("HF_TOKEN")
 if hf_token:

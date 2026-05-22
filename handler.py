@@ -63,6 +63,12 @@ def handler(event):
     - duration_seconds (float)
     - chunks_generated (int)
     """
+    # DEBUG: Inspect OrpheusModel methods
+    import inspect
+    methods = [m for m in dir(OrpheusModel) if not m.startswith('_')]
+    sigs = {m: str(inspect.signature(getattr(OrpheusModel, m))) for m in methods}
+    return {"debug_methods": sigs}
+    
     input_data = event["input"]
     
     # Extract parameters with defaults

@@ -63,12 +63,6 @@ def handler(event):
     - duration_seconds (float)
     - chunks_generated (int)
     """
-    # DEBUG: Inspect OrpheusModel methods
-    import inspect
-    methods = [m for m in dir(OrpheusModel) if not m.startswith('_')]
-    sigs = {m: str(inspect.signature(getattr(OrpheusModel, m))) for m in methods}
-    return {"debug_methods": sigs}
-    
     input_data = event["input"]
     
     # Extract parameters with defaults
@@ -137,7 +131,7 @@ def handler(event):
         if ref_path:
             # Use pretrained model with voice cloning
             audio_chunks_generator = get_clone_model().generate_speech(
-                chunk,
+                prompt=chunk,
                 voice=voice,
                 temperature=temperature,
                 repetition_penalty=repetition_penalty
@@ -146,7 +140,7 @@ def handler(event):
             # Use finetuned model with preset voice
             # generate_speech() returns a generator of audio chunks
             audio_chunks_generator = get_model().generate_speech(
-                chunk,
+                prompt=chunk,
                 voice=voice,
                 temperature=temperature,
                 repetition_penalty=repetition_penalty
